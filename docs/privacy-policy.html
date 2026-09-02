@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Video Digest AI 隐私政策</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.7;
+        color: #172033;
+        background: #f5f7fb;
+      }
+      body { margin: 0; }
+      main { max-width: 860px; margin: 0 auto; padding: 48px 24px 72px; }
+      article {
+        background: #fff;
+        border: 1px solid #e5e9f2;
+        border-radius: 18px;
+        padding: 36px clamp(24px, 5vw, 56px);
+        box-shadow: 0 12px 36px rgba(28, 44, 76, 0.06);
+      }
+      h1, h2 { line-height: 1.25; }
+      h1 { margin-top: 0; font-size: 2rem; }
+      h2 { margin-top: 2rem; font-size: 1.25rem; }
+      li { margin: 0.35rem 0; }
+      .meta { color: #667085; font-size: 0.95rem; }
+      code { background: #f0f3f8; border-radius: 4px; padding: 0.1em 0.3em; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <article>
+        <h1>Video Digest AI 隐私政策</h1>
+        <p class="meta">生效日期：2026 年 9 月 3 日</p>
+
+        <p>
+          Video Digest AI 没有开发者运营的服务器、账户系统、广告、分析或遥测。
+          开发者不会接收扩展中的设置、字幕、笔记或密钥。
+        </p>
+
+        <h2>本机存储</h2>
+        <p>以下内容保存在浏览器的 <code>chrome.storage.local</code> 中，不使用云端同步：</p>
+        <ul>
+          <li>YouTube 字幕服务商及其 API Key、排序设置。</li>
+          <li>AI Provider 的服务商、Base URL、模型、API Key、并发和超时设置。</li>
+          <li>字幕、翻译和概览缓存，以及用户保存的时间戳笔记和手记。</li>
+          <li>当前侧栏会话中的“问 AI”对话；仅在用户主动保存时，选中的问答才会写入笔记。</li>
+        </ul>
+        <p>卸载扩展或清除扩展数据后，浏览器会删除这些本机数据。</p>
+
+        <h2>网络请求</h2>
+        <ul>
+          <li>
+            YouTube：扩展会将规范化的视频 URL 发送给用户配置的字幕服务商，并只携带对应服务商的 API Key。
+            服务商按用户保存的顺序尝试；发生可恢复错误时才会尝试下一项。扩展不会下载音频或进行语音转写。
+          </li>
+          <li>
+            Bilibili：扩展会请求视频信息、字幕轨和字幕内容。扩展没有 cookies 权限，不读取或保存 Cookie 内容。
+          </li>
+          <li>
+            AI Provider：执行翻译、顺句、概览、视频问答、解释或笔记润色时，必要的字幕文本、视频元数据、
+            用户问题、必要的对话历史和 API Key 会发送给当前配置的 AI Provider。
+          </li>
+        </ul>
+        <p>第三方 AI Provider 和字幕服务商如何处理收到的数据，适用其各自的隐私政策。</p>
+
+        <h2>权限和用户控制</h2>
+        <ul>
+          <li>网站权限仅用于识别 YouTube/Bilibili 视频、读取公开字幕相关信息和控制时间戳跳转。</li>
+          <li>可选域名权限仅在用户保存对应字幕服务商或 AI Provider 后，按用户配置的域名申请。</li>
+          <li>明文 HTTP 仅允许本机地址；远程服务使用 HTTPS。</li>
+          <li>用户可在设置页修改或清空 API Key、删除服务商和删除笔记，也可在浏览器的扩展详情页撤回权限。</li>
+        </ul>
+
+        <h2>联系我们</h2>
+        <p>如发现隐私政策与扩展实际行为不一致，请通过 Chrome Web Store 页面提供的支持方式联系发布者。</p>
+
+        <h2>English summary</h2>
+        <p>
+          Video Digest AI has no developer-operated backend, account system, ads, analytics, or telemetry.
+          Settings, API keys, cached transcripts, digests, and notes are stored locally in <code>chrome.storage.local</code>.
+          The extension sends only data required for user-requested caption and AI features to services configured by the user.
+          It does not download or transcribe audio locally. Users can edit or delete provider credentials, notes, and permissions at any time.
+        </p>
+      </article>
+    </main>
+  </body>
+</html>
