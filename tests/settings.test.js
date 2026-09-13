@@ -101,22 +101,6 @@ test("originOf 产出可直接用于权限申请的来源", () => {
   assert.equal(settings.originOf("不是地址"), null);
 });
 
-test("飞书 Webhook 只接受 HTTPS，并保留可选 Bearer Token", () => {
-  const valid = settings.validateLarkWebhook({
-    url: "https://base-api.feishu.cn/automation/webhook/trigger/abc",
-    bearerToken: "  bearer-secret  ",
-    autoSync: true,
-  });
-  assert.equal(valid.ok, true);
-  assert.equal(valid.origin, "https://base-api.feishu.cn/");
-  assert.deepEqual(valid.larkWebhook, {
-    url: "https://base-api.feishu.cn/automation/webhook/trigger/abc",
-    bearerToken: "bearer-secret",
-    autoSync: true,
-  });
-  assert.equal(settings.validateLarkWebhook({ url: "http://example.com/hook" }).ok, false);
-});
-
 // ============================================================
 // 端点拼接
 // ============================================================
@@ -520,20 +504,6 @@ test("概览提示词有中英文默认值，并保留用户调整", () => {
   }).overviewPrompts;
   assert.equal(custom["zh-CN"], "只关注行动建议");
   assert.equal(custom.en, "Focus on actions");
-});
-
-test("应用设置保存飞书 Webhook，未配置时默认关闭自动同步", () => {
-  const defaults = settings.normalizeAppSettings({});
-  assert.deepEqual(defaults.larkWebhook, { url: "", bearerToken: "", autoSync: false });
-  const configured = settings.normalizeAppSettings({
-    larkWebhook: {
-      url: "https://base-api.feishu.cn/automation/webhook/trigger/abc",
-      bearerToken: "token",
-      autoSync: true,
-    },
-  });
-  assert.equal(configured.larkWebhook.autoSync, true);
-  assert.equal(configured.larkWebhook.bearerToken, "token");
 });
 
 test("旧主备 Provider 自动迁移为有序 AI 服务列表", () => {
