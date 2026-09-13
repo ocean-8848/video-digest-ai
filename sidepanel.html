@@ -43,7 +43,7 @@
 
   <header class="app-header">
     <div class="app-header-row">
-      <h1 class="app-title">Video Digest AI</h1>
+      <h1 class="app-title visually-hidden">Video Digest AI</h1>
       <div class="app-actions">
         <button id="refreshBtn" class="icon-btn" title="重新获取字幕（跳过缓存）" aria-label="重新获取字幕">
           <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -318,9 +318,29 @@
       <div id="chatEmpty" class="chat-empty">
         <p class="state-title">想问 AI 什么？</p>
         <p class="state-text">有字幕或概览时会自动结合视频；没有上下文也可以自由问答。</p>
+        <div id="chatPresetsEmpty" class="chat-presets">
+          <div class="chat-presets-header">
+            <span class="chat-presets-title">常用提问</span>
+            <button id="manageChatQuestionsBtn" class="ghost-btn icon-btn" type="button" title="管理预设问题" aria-label="管理预设问题">
+              <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <use href="#i-edit"/>
+              </svg>
+              <span>编辑预设</span>
+            </button>
+          </div>
+          <div id="chatChipsEmpty" class="chat-chips"></div>
+        </div>
       </div>
       <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
       <form id="chatForm" class="chat-composer chat-sticky">
+        <div id="chatQuickBar" class="chat-quick-bar" hidden>
+          <div id="chatQuickChips" class="chat-quick-chips"></div>
+          <button id="quickManageQuestionsBtn" class="chat-quick-manage-btn" type="button" title="管理预设问题" aria-label="管理预设问题">
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <use href="#i-edit"/>
+            </svg>
+          </button>
+        </div>
         <textarea id="chatInput" rows="2" maxlength="2000" placeholder="输入问题…" aria-label="向 AI 提问"></textarea>
         <div class="chat-composer-footer">
           <span class="muted">Enter 发送 · Shift+Enter 换行</span>
@@ -344,6 +364,32 @@
       </button>
     </div>
     <p id="explainBody" class="explain-body"></p>
+  </div>
+
+  <!-- 自定义问答预设问题弹窗 -->
+  <div id="chatQuestionsModal" class="chat-modal" hidden>
+    <div id="chatQuestionsBackdrop" class="chat-modal-backdrop"></div>
+    <div class="chat-modal-card" role="dialog" aria-modal="true" aria-labelledby="chatQuestionsModalTitle">
+      <div class="chat-modal-head">
+        <h3 id="chatQuestionsModalTitle" class="chat-modal-title">自定义常用问题</h3>
+        <button id="closeChatQuestionsModalBtn" class="icon-btn" type="button" title="关闭" aria-label="关闭">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m3.5 3.5 9 9M12.5 3.5l-9 9"/>
+          </svg>
+        </button>
+      </div>
+      <div class="chat-modal-body">
+        <div class="chat-modal-add-row">
+          <input id="newChatQuestionInput" class="chat-modal-input" type="text" placeholder="输入新的预设问题…" maxlength="300" />
+          <button id="addChatQuestionBtn" class="primary-btn" type="button">添加</button>
+        </div>
+        <div id="chatQuestionsManageList" class="chat-questions-list"></div>
+      </div>
+      <div class="chat-modal-footer">
+        <button id="resetChatQuestionsBtn" class="ghost-btn danger-text" type="button">恢复默认</button>
+        <button id="saveChatQuestionsBtn" class="primary-btn" type="button">完成</button>
+      </div>
+    </div>
   </div>
 
   <!-- lib/ai.js 用到 transcript 的时间戳格式化，必须先加载 -->

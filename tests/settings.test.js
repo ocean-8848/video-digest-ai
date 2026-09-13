@@ -585,3 +585,58 @@ test("笔记条目上限默认 100，允许配置至 400", () => {
   assert.equal(settings.normalizeAppSettings({ noteLimit: 999 }).noteLimit, 400);
   assert.equal(settings.normalizeAppSettings({ noteLimit: 0 }).noteLimit, 1);
 });
+
+test("问答默认问题：提供默认值并支持非数组/空元素/超长字符归一化过滤", () => {
+  const defaults = settings.DEFAULT_CHAT_QUESTIONS;
+  assert.ok(Array.isArray(defaults));
+  assert.equal(defaults.length, 3);
+  assert.equal(defaults[0], "200字以内总结视频内容");
+
+  // 非数组或空输入回落到默认
+  assert.deepEqual(settings.normalizeChatDefaultQuestions(null), defaults);
+  assert.deepEqual(settings.normalizeChatDefaultQuestions(undefined), defaults);
+  assert.deepEqual(settings.normalizeChatDefaultQuestions("not an array"), defaults);
+  assert.deepEqual(settings.normalizeChatDefaultQuestions([]), defaults);
+
+  // 过滤空白字符串与非字符串，超长文本截断至 300 字符
+  const longText = "a".repeat(350);
+  const normalized = settings.normalizeChatDefaultQuestions([
+    "  问题一  ",
+    "",
+    "   ",
+    null,
+    123,
+    longText,
+  ]);
+  assert.equal(normalized.length, 2);
+  assert.equal(normalized[0], "问题一");
+  assert.equal(normalized[1].length, 300);
+
+  // 全为空白时回落到默认
+  assert.deepEqual(settings.normalizeChatDefaultQuestions(["", "  ", null]), defaults);
+
+  // 超过 20 条上限截断
+  const twentyFive = Array.from({ length: 25 }, (_, i) => "问题 " + (i + 1));
+  const capped = settings.normalizeChatDefaultQuestions(twentyFive);
+  assert.equal(capped.length, 20);
+  assert.equal(capped[0], "问题 1");
+  assert.equal(capped[19], "问题 20");
+});
+
+test("问答默认问题配置在 settings 中的读写与 fallback", () => {
+  const defaultApp = settings.normalizeAppSettings({});
+  assert.deepEqual(defaultApp.chatDefaultQuestions, settings.DEFAULT_CHAT_QUESTIONS);
+
+  const customApp = settings.normalizeAppSettings({
+    chatDefaultQuestions: ["  这个视频主要讲了什么？  ", "有什么争议点吗？"],
+  });
+  assert.deepEqual(customApp.chatDefaultQuestions, [
+    "这个视频主要讲了什么？",
+    "有什么争议点吗？",
+  ]);
+
+  const invalidApp = settings.normalizeAppSettings({
+    chatDefaultQuestions: ["   ", ""],
+  });
+  assert.deepEqual(invalidApp.chatDefaultQuestions, settings.DEFAULT_CHAT_QUESTIONS);
+});

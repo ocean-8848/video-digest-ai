@@ -80,6 +80,14 @@ const SIDE_PANEL_EN = Object.freeze({
   "清空对话": "Clear chat",
   "Enter 发送 · Shift+Enter 换行": "Enter to send · Shift+Enter for a new line",
   "发送": "Send",
+  "常用提问": "Suggested questions",
+  "编辑预设": "Edit presets",
+  "管理预设问题": "Manage preset questions",
+  "自定义常用问题": "Custom preset questions",
+  "输入新的预设问题…": "Enter a new preset question…",
+  "恢复默认": "Reset to default",
+  "完成": "Done",
+  "添加": "Add",
   "想问 AI 什么？": "What would you like to ask?",
   "有字幕或概览时会自动结合视频；没有上下文也可以自由问答。":
     "Video captions and the overview are used when available; you can also ask without context.",
@@ -270,6 +278,8 @@ const state = {
   currentTime: 0,
   chatMessages: [], // 当前视频的多轮问答，仅在本次侧栏会话中保留
   chatSending: false,
+  chatQuestionsEditing: null,
+  appSettings: null,
   notesForExport: [],
   notesLoaded: [],
   notesTotalCount: 0,
@@ -1115,6 +1125,66 @@ async function runRewrite(kind, run) {
 // 问 AI
 // ============================================================
 
+function getChatDefaultQuestions() {
+  const questions = state.appSettings?.chatDefaultQuestions;
+  if (Array.isArray(questions) && questions.length > 0) {
+    return questions;
+  }
+  return [...BILI_SETTINGS.DEFAULT_CHAT_QUESTIONS];
+}
+
+function renderChatPresetQuestions() {
+  const questions = getChatDefaultQuestions();
+  const emptyChips = el("chatChipsEmpty");
+  const quickChips = el("chatQuickChips");
+  const quickBar = el("chatQuickBar");
+
+  if (emptyChips) {
+    emptyChips.textContent = "";
+    for (const question of questions) {
+      const chip = document.createElement("button");
+      chip.className = "chat-chip";
+      chip.type = "button";
+      chip.textContent = question;
+      chip.addEventListener("click", () => submitChatQuestion(question));
+      emptyChips.appendChild(chip);
+    }
+  }
+
+  if (quickChips) {
+    quickChips.textContent = "";
+    for (const question of questions) {
+      const chip = document.createElement("button");
+      chip.className = "chat-chip";
+      chip.type = "button";
+      chip.title = question;
+      chip.textContent = question;
+      chip.addEventListener("click", () => submitChatQuestion(question));
+      quickChips.appendChild(chip);
+    }
+  }
+
+  if (quickBar) {
+    quickBar.hidden = state.chatMessages.length === 0 || state.chatSending;
+  }
+}
+
+function openChatQuestionsModal() {
+  state.chatQuestionsEditing = [...getChatDefaultQuestions()];
+  const input = el("newChatQuestionInput");
+  if (input) input.value = "";
+  renderChatQuestionsManageList();
+  const modal = el("chatQuestionsModal");
+  if (modal) modal.hidden = false;
+  if (input) input.focus();
+}
+
+function closeChatQuestionsModal() {
+  const modal = el("chatQuestionsModal");
+  if (modal) modal.hidden = true;
+  state.chatQuestionsEditing = null;
+}
+
 function resetChat() {
   state.chatMessages = [];
   state.chatSending = false;
@@ -1136,6 +1206,16 @@ function renderChat() {
   list.textContent = "";
 
   empty.hidden = state.chatMessages.length > 0 || state.chatSending;
+
+  const quickBar = el("chatQuickBar");
+  if (quickBar) {
+    quickBar.hidden = state.chatMessages.length === 0 || state.chatSending;
+  }
+
+  const emptyChips = el("chatChipsEmpty");
+  if (emptyChips && emptyChips.children.length === 0) {
+    renderChatPresetQuestions();
+  }
 
   for (const message of state.chatMessages) {
     const bubble = document.createElement("article");
@@ -1176,6 +1256,104 @@ function renderChat() {
   el("sendChatBtn").disabled = state.chatSending;
   el("sendChatBtn").textContent = uiText(state.chatSending ? "回答中…" : "发送");
   list.scrollTop = list.scrollHeight;
+}
+
+function syncEditingQuestionsFromDOM() {
+  const list = el("chatQuestionsManageList");
+  if (!list || !list.children || list.children.length === 0) return;
+  const inputs = list.querySelectorAll(".chat-question-input");
+  state.chatQuestionsEditing = Array.from(inputs).map((inp) => inp.value.trim()).filter(Boolean);
+}
+
+function renderChatQuestionsManageList() {
+  const list = el("chatQuestionsManageList");
+  if (!list) return;
+  list.textContent = "";
+
+  const questions = Array.isArray(state.chatQuestionsEditing)
+    ? state.chatQuestionsEditing
+    : getChatDefaultQuestions();
+
+  questions.forEach((question, index) => {
+    const item = document.createElement("div");
+    item.className = "chat-question-item";
+
+    const input = document.createElement("input");
+    input.className = "chat-question-input";
+    input.type = "text";
+    input.maxLength = 300;
+    input.value = question;
+    input.addEventListener("input", () => {
+      if (Array.isArray(state.chatQuestionsEditing)) {
+        state.chatQuestionsEditing[index] = input.value;
+      }
+    });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "icon-btn delete-question-btn";
+    deleteBtn.type = "button";
+    deleteBtn.title = uiText("删除");
+    deleteBtn.setAttribute("aria-label", uiText("删除"));
+    deleteBtn.appendChild(icon("trash"));
+    deleteBtn.addEventListener("click", () => {
+      syncEditingQuestionsFromDOM();
+      if (Array.isArray(state.chatQuestionsEditing)) {
+        state.chatQuestionsEditing.splice(index, 1);
+        renderChatQuestionsManageList();
+      }
+    });
+
+    item.appendChild(input);
+    item.appendChild(deleteBtn);
+    list.appendChild(item);
+  });
+}
+
+function addChatQuestion() {
+  syncEditingQuestionsFromDOM();
+  const input = el("newChatQuestionInput");
+  if (!input) return;
+  const text = String(input.value || "").trim().slice(0, 300);
+  if (!text) {
+    input.focus();
+    return;
+  }
+  if (!Array.isArray(state.chatQuestionsEditing)) {
+    state.chatQuestionsEditing = [...getChatDefaultQuestions()];
+  }
+  state.chatQuestionsEditing.push(text);
+  input.value = "";
+  renderChatQuestionsManageList();
+  input.focus();
+}
+
+function resetChatQuestions() {
+  state.chatQuestionsEditing = [...BILI_SETTINGS.DEFAULT_CHAT_QUESTIONS];
+  renderChatQuestionsManageList();
+}
+
+async function saveChatQuestions() {
+  syncEditingQuestionsFromDOM();
+  const list = Array.isArray(state.chatQuestionsEditing)
+    ? state.chatQuestionsEditing
+    : getChatDefaultQuestions();
+  const cleaned = BILI_SETTINGS.normalizeChatDefaultQuestions(list);
+
+  try {
+    const currentSettings = await loadSettings();
+    const updatedSettings = {
+      ...currentSettings,
+      chatDefaultQuestions: cleaned,
+    };
+    await chrome.storage.local.set({
+      [BILI_SETTINGS.STORAGE_KEY]: updatedSettings,
+    });
+    state.appSettings = updatedSettings;
+    renderChatPresetQuestions();
+    closeChatQuestionsModal();
+  } catch (error) {
+    console.error("Failed to save chat default questions:", error);
+  }
 }
 
 async function submitChatQuestion(questionInput) {
@@ -2498,8 +2676,15 @@ function setupEventListeners() {
     if (event.key === "Escape") closeSearch();
   });
   el("followPill").addEventListener("click", jumpToActive);
-  // 「/」唤起搜索——正在别的输入框里打字时不抢。
+  // 「/」唤起搜索——正在别的输入框里打字时不抢；Escape 关闭问答预设弹窗。
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      const modal = el("chatQuestionsModal");
+      if (modal && !modal.hidden) {
+        closeChatQuestionsModal();
+        return;
+      }
+    }
     const tag = event.target?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;
     if (event.key === "/" && state.tab === "transcript" && state.view === "ready") {
@@ -2549,6 +2734,19 @@ function setupEventListeners() {
     }
   });
   el("clearChatBtn").addEventListener("click", resetChat);
+  el("manageChatQuestionsBtn").addEventListener("click", openChatQuestionsModal);
+  el("quickManageQuestionsBtn").addEventListener("click", openChatQuestionsModal);
+  el("closeChatQuestionsModalBtn").addEventListener("click", closeChatQuestionsModal);
+  el("chatQuestionsBackdrop").addEventListener("click", closeChatQuestionsModal);
+  el("addChatQuestionBtn").addEventListener("click", addChatQuestion);
+  el("newChatQuestionInput").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addChatQuestion();
+    }
+  });
+  el("resetChatQuestionsBtn").addEventListener("click", resetChatQuestions);
+  el("saveChatQuestionsBtn").addEventListener("click", saveChatQuestions);
   el("disabledSettingsBtn").addEventListener("click", () =>
     chrome.runtime.sendMessage({ action: "openOptions" }),
   );
@@ -2641,11 +2839,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const settings = BILI_SETTINGS.normalizeAppSettings(
     stored[BILI_SETTINGS.STORAGE_KEY] ?? stored[BILI_SETTINGS.LEGACY_STORAGE_KEY],
   );
+  state.appSettings = settings;
   state.uiLanguage = settings.uiLanguage;
   state.overviewPrompts = { ...settings.overviewPrompts };
   state.overviewPromptLanguage = state.uiLanguage;
   applySidepanelLanguage();
   renderOverviewPrompt();
+  renderChatPresetQuestions();
   state.windowId = (await chrome.windows.getCurrent()).id;
   setupEventListeners();
   setInterval(trackPlayback, POLL_INTERVAL_MS);

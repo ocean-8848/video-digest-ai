@@ -22,10 +22,17 @@ const ROOT = path.join(__dirname, "..");
 /** 属性随便读写、方法都不做事的元素桩，够渲染路径用即可。 */
 function createElement(tag = "div") {
   const queried = new Map();
+  let text = "";
   return {
     tagName: tag,
     className: "",
-    textContent: "",
+    get textContent() {
+      return text;
+    },
+    set textContent(value) {
+      text = String(value);
+      if (text === "") this.children = [];
+    },
     value: "",
     hidden: false,
     disabled: false,
@@ -64,8 +71,35 @@ function createElement(tag = "div") {
       if (!queried.has(selector)) queried.set(selector, createElement("div"));
       return queried.get(selector);
     },
-    querySelectorAll() {
-      return [];
+    querySelectorAll(selector) {
+      const results = [];
+      const match = (node) => {
+        if (!node) return;
+        if (typeof selector === "string") {
+          if (
+            selector.startsWith(".") &&
+            node.className &&
+            node.className.split(/\s+/).includes(selector.slice(1))
+          ) {
+            results.push(node);
+          } else if (selector.startsWith("#") && node.id === selector.slice(1)) {
+            results.push(node);
+          } else if (node.tagName && node.tagName.toLowerCase() === selector.toLowerCase()) {
+            results.push(node);
+          }
+        }
+        if (Array.isArray(node.children)) {
+          for (const child of node.children) {
+            match(child);
+          }
+        }
+      };
+      if (Array.isArray(this.children)) {
+        for (const child of this.children) {
+          match(child);
+        }
+      }
+      return results;
     },
   };
 }
@@ -78,6 +112,7 @@ function createContext({
   tabsQuery,
 }) {
   const elements = new Map();
+  const docListeners = new Map();
   const byId = (id) => {
     if (!elements.has(id)) elements.set(id, createElement("div"));
     return elements.get(id);
@@ -101,15 +136,19 @@ function createContext({
     clearTimeout,
     setInterval,
     CSS: { escape: (value) => value },
-    window: { getSelection: () => null },
+    window: { getSelection: () => null, addEventListener() {}, removeEventListener() {} },
     document: {
       getElementById: byId,
       createElement: (tag) => createElement(tag),
       createTextNode: (text) => ({ tagName: "#text", textContent: String(text) }),
       createElementNS: (namespace, tag) => createElement(tag),
       createDocumentFragment: () => createElement("#fragment"),
+      querySelector: () => createElement("div"),
       querySelectorAll: () => [],
-      addEventListener() {},
+      addEventListener(type, listener) {
+        if (!docListeners.has(type)) docListeners.set(type, []);
+        docListeners.get(type).push(listener);
+      },
     },
     navigator: { clipboard: { writeText: async () => {} } },
     chrome: {
@@ -168,7 +207,7 @@ function createContext({
   // 所以在末尾追加一行，从同一个词法作用域里把要测的绑定递出来。
   const source = fs.readFileSync(path.join(ROOT, "sidepanel.js"), "utf8");
   vm.runInContext(
-    `${source}\n;globalThis.__api = { state, uiText, parseVideoRef, activeTab, syncWithActiveTab, loadTranscript, analyze, renderSegments, renderAnalysis, segmentDisplayText, noteTextForSegment, saveTextAsVideoNote, paintSegmentText, setTranscriptMode, selectionContext, applySearchFilter, updateFollowPill, jumpToActive, closeSearch, renderNoteCard, renderMemoCard, playNote, saveMemo, currentMemoVideoContext, submitChatQuestion, saveChatAsNote, renderChat, switchTab, renderOverviewPrompt, resetOverviewPrompt, chatContextSelection, syncNotesToLark, syncAllNotesToLark, larkSyncMessage };`,
+    `${source}\n;globalThis.__api = { state, uiText, parseVideoRef, activeTab, syncWithActiveTab, loadTranscript, analyze, renderSegments, renderAnalysis, segmentDisplayText, noteTextForSegment, saveTextAsVideoNote, paintSegmentText, setTranscriptMode, selectionContext, applySearchFilter, updateFollowPill, jumpToActive, closeSearch, renderNoteCard, renderMemoCard, playNote, saveMemo, currentMemoVideoContext, submitChatQuestion, saveChatAsNote, renderChat, renderChatPresetQuestions, openChatQuestionsModal, closeChatQuestionsModal, addChatQuestion, resetChatQuestions, saveChatQuestions, setupEventListeners, switchTab, renderOverviewPrompt, resetOverviewPrompt, chatContextSelection, syncNotesToLark, syncAllNotesToLark, larkSyncMessage };`,
     context,
   );
 
@@ -179,6 +218,11 @@ function createContext({
     sent,
     openedTabs,
     seeks,
+    BILI_SETTINGS: context.BILI_SETTINGS,
+    triggerDocumentKeydown(event) {
+      const listeners = docListeners.get("keydown") || [];
+      for (const fn of listeners) fn(event);
+    },
   };
 }
 
@@ -1061,4 +1105,154 @@ test("普通页面保存手记时不携带任何视频信息", async () => {
   assert.equal("bvid" in save, false);
   assert.equal("videoTitle" in save, false);
   assert.equal("timestamp" in save, false);
+});
+
+test("问 AI 预设问题默认渲染在空状态与快速提问栏，点击直接发起提问", async () => {
+  const ctx = createContext({ transcript: transcriptResult() });
+  ctx.renderChatPresetQuestions();
+
+  const emptyChips = ctx.el("chatChipsEmpty");
+  const quickChips = ctx.el("chatQuickChips");
+  const quickBar = ctx.el("chatQuickBar");
+
+  assert.equal(emptyChips.children.length, 3);
+  assert.equal(quickChips.children.length, 3);
+  assert.equal(emptyChips.children[0].textContent, "200字以内总结视频内容");
+  assert.equal(quickBar.hidden, true);
+
+  // 点击预设问题直接调用提问
+  const firstChip = emptyChips.children[0];
+  const clickHandler = firstChip.listeners.get("click");
+  assert.ok(typeof clickHandler === "function");
+  await clickHandler();
+
+  const asks = ctx.sent.filter((message) => message.action === "askVideo");
+  assert.equal(asks.length, 1);
+  assert.equal(asks[0].question, "200字以内总结视频内容");
+});
+
+test("问 AI 存在消息时，快速提问栏展示且点击可追问", async () => {
+  const ctx = createContext({ transcript: transcriptResult() });
+  ctx.renderChatPresetQuestions();
+  ctx.state.chatMessages = [
+    { role: "user", content: "前置问题" },
+    { role: "assistant", content: "前置回答" },
+  ];
+
+  ctx.renderChat();
+  assert.equal(ctx.el("chatEmpty").hidden, true);
+  assert.equal(ctx.el("chatQuickBar").hidden, false);
+
+  const quickChip = ctx.el("chatQuickChips").children[1];
+  await quickChip.listeners.get("click")();
+
+  const asks = ctx.sent.filter((message) => message.action === "askVideo");
+  assert.equal(asks.length, 1);
+  assert.equal(asks[0].question, "提取视频核心要点与关键结论");
+});
+
+test("问答默认问题管理弹窗：增删、重置、持久化保存与关闭", async () => {
+  const ctx = createContext({ transcript: transcriptResult() });
+  ctx.openChatQuestionsModal();
+
+  const modal = ctx.el("chatQuestionsModal");
+  assert.equal(modal.hidden, false);
+  const list = ctx.el("chatQuestionsManageList");
+  assert.equal(list.children.length, 3);
+
+  // 添加新问题
+  ctx.el("newChatQuestionInput").value = "新加的提问";
+  ctx.addChatQuestion();
+  assert.equal(list.children.length, 4);
+  assert.equal(ctx.el("newChatQuestionInput").value, "");
+
+  // 删除第一项
+  const firstDeleteBtn = list.children[0].children[1];
+  firstDeleteBtn.listeners.get("click")();
+  assert.equal(list.children.length, 3);
+
+  // 恢复默认
+  ctx.resetChatQuestions();
+  assert.equal(list.children.length, 3);
+
+  // 保存并持久化
+  let savedStorage = null;
+  ctx.chrome.storage.local.set = async (val) => {
+    savedStorage = val;
+  };
+  await ctx.saveChatQuestions();
+
+  assert.equal(modal.hidden, true);
+  assert.ok(savedStorage && savedStorage["video_digest_settings"]);
+  assert.deepEqual(
+    [...savedStorage["video_digest_settings"].chatDefaultQuestions],
+    [...ctx.BILI_SETTINGS.DEFAULT_CHAT_QUESTIONS],
+  );
+
+  // 再次打开并关闭
+  ctx.openChatQuestionsModal();
+  assert.equal(modal.hidden, false);
+  ctx.closeChatQuestionsModal();
+  assert.equal(modal.hidden, true);
+  assert.equal(ctx.state.chatQuestionsEditing, null);
+});
+
+test("用户在弹窗中新增自定义问题 -> 点击保存 -> 验证使用 BILI_SETTINGS.STORAGE_KEY 写入 chrome.storage.local", async () => {
+  const ctx = createContext({ transcript: transcriptResult() });
+  ctx.openChatQuestionsModal();
+
+  const modal = ctx.el("chatQuestionsModal");
+  assert.equal(modal.hidden, false);
+
+  // 输入新问题并点击添加
+  ctx.el("newChatQuestionInput").value = "我的自定义预设提问";
+  ctx.addChatQuestion();
+
+  // 验证输入框已被清空且列表中增加了新问题
+  assert.equal(ctx.el("newChatQuestionInput").value, "");
+  const list = ctx.el("chatQuestionsManageList");
+  assert.equal(list.children.length, 4);
+
+  // 点击保存
+  let savedStorage = null;
+  ctx.chrome.storage.local.set = async (data) => {
+    savedStorage = data;
+  };
+  await ctx.saveChatQuestions();
+
+  // 弹窗关闭，且写入 storage 的数据包含新增问题，且使用 BILI_SETTINGS.STORAGE_KEY
+  assert.equal(modal.hidden, true);
+  assert.ok(savedStorage);
+  assert.ok(savedStorage[ctx.BILI_SETTINGS.STORAGE_KEY]);
+  const savedQuestions = savedStorage[ctx.BILI_SETTINGS.STORAGE_KEY].chatDefaultQuestions;
+  assert.ok(Array.isArray(savedQuestions));
+  assert.equal(savedQuestions.length, 4);
+  assert.equal(savedQuestions[savedQuestions.length - 1], "我的自定义预设提问");
+});
+
+test("问答预设问题弹窗支持按 Escape 键关闭", async () => {
+  const ctx = createContext({ transcript: transcriptResult() });
+  ctx.setupEventListeners();
+  ctx.openChatQuestionsModal();
+
+  const modal = ctx.el("chatQuestionsModal");
+  assert.equal(modal.hidden, false);
+
+  // 触发全局 Escape 按键
+  ctx.triggerDocumentKeydown({ key: "Escape" });
+  assert.equal(modal.hidden, true);
+  assert.equal(ctx.state.chatQuestionsEditing, null);
+});
+
+test("saveChatQuestions 发生存储异常时捕获错误并不关闭弹窗", async () => {
+  const ctx = createContext({ transcript: transcriptResult() });
+  ctx.openChatQuestionsModal();
+  const modal = ctx.el("chatQuestionsModal");
+
+  ctx.chrome.storage.local.set = async () => {
+    throw new Error("QuotaExceededError");
+  };
+
+  await ctx.saveChatQuestions();
+  assert.equal(modal.hidden, false);
 });

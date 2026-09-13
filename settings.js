@@ -195,6 +195,12 @@ var BILI_SETTINGS = (() => {
     ]),
   });
 
+  const DEFAULT_CHAT_QUESTIONS = Object.freeze([
+    "200字以内总结视频内容",
+    "提取视频核心要点与关键结论",
+    "梳理视频时间线与主要脉络",
+  ]);
+
   const APP_DEFAULTS = Object.freeze({
     aiProviders: Object.freeze([
       Object.freeze({ id: "ai-1", ...DEFAULTS }),
@@ -213,6 +219,7 @@ var BILI_SETTINGS = (() => {
       bearerToken: "",
       autoSync: false,
     }),
+    chatDefaultQuestions: DEFAULT_CHAT_QUESTIONS,
   });
 
   const DEFAULT_OVERVIEW_PROMPTS = Object.freeze({
@@ -230,6 +237,16 @@ var BILI_SETTINGS = (() => {
         return [language, (value || fallback).slice(0, 5000)];
       }),
     );
+  }
+
+  function normalizeChatDefaultQuestions(input) {
+    if (!Array.isArray(input)) return [...DEFAULT_CHAT_QUESTIONS];
+    const cleaned = input
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter(Boolean)
+      .slice(0, 20)
+      .map((item) => item.slice(0, 300));
+    return cleaned.length ? cleaned : [...DEFAULT_CHAT_QUESTIONS];
   }
 
   function normalizeLarkWebhook(input) {
@@ -532,6 +549,7 @@ var BILI_SETTINGS = (() => {
       uiLanguage: source.uiLanguage === "en" ? "en" : "zh-CN",
       overviewPrompts: normalizeOverviewPrompts(source.overviewPrompts),
       larkWebhook: normalizeLarkWebhook(source.larkWebhook),
+      chatDefaultQuestions: normalizeChatDefaultQuestions(source.chatDefaultQuestions),
     };
   }
 
@@ -592,6 +610,7 @@ var BILI_SETTINGS = (() => {
     MAX_AI_PROVIDERS,
     DEFAULTS,
     APP_DEFAULTS,
+    DEFAULT_CHAT_QUESTIONS,
     YOUTUBE_CAPTION_PROVIDERS,
     MAX_YOUTUBE_CAPTION_PROVIDERS,
     DEFAULT_OVERVIEW_PROMPTS,
@@ -602,6 +621,7 @@ var BILI_SETTINGS = (() => {
     normalizeYoutubeCaptionProviders,
     normalizeLangPreference,
     normalizeOverviewPrompts,
+    normalizeChatDefaultQuestions,
     normalizeLarkWebhook,
     validateLarkWebhookUrl,
     validateLarkWebhook,
