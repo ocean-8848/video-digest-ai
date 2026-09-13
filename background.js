@@ -14,7 +14,6 @@ importScripts(
   "lib/ai-provider.js",
   "lib/provider-router.js",
   "lib/concurrency.js",
-  "lib/lark-webhook.js",
 );
 
 const DEBUG = false;
@@ -276,20 +275,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message?.action === "getMemos") {
     handleGetMemos(message.kind, { offset: message.offset, limit: message.limit })
-      .then(sendResponse)
-      .catch((error) => sendResponse({ success: false, error: error.message }));
-    return true;
-  }
-
-  if (message?.action === "syncNotesToLark") {
-    handleSyncNotesToLark(message.noteIds)
-      .then(sendResponse)
-      .catch((error) => sendResponse({ success: false, error: error.message }));
-    return true;
-  }
-
-  if (message?.action === "testLarkWebhook") {
-    handleTestLarkWebhook()
       .then(sendResponse)
       .catch((error) => sendResponse({ success: false, error: error.message }));
     return true;
@@ -1472,88 +1457,6 @@ async function handleGetNoteStats() {
   };
 }
 
-function wait(milliseconds) {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
-}
-
-function notifyLarkSyncProgress({ done, total, synced, failed }) {
-  chrome.runtime
-    .sendMessage({ action: "larkSyncProgress", done, total, synced, failed })
-    .catch(() => {});
-}
-
-async function postNoteToLark(larkWebhook, note) {
-  const headers = { "Content-Type": "application/json" };
-  if (larkWebhook.bearerToken) headers.Authorization = `Bearer ${larkWebhook.bearerToken}`;
-  const response = await fetch(larkWebhook.url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(BILI_LARK_WEBHOOK.notePayload(note)),
-  });
-  if (!response.ok) {
-    // 不回显飞书工作流的响应正文，避免把其中的内部信息显示到扩展页面。
-    throw new Error(`飞书 Webhook 返回 HTTP ${response.status}。`);
-  }
-}
-
-async function syncNoteWhenAutoEnabled(note) {
-  try {
-    const settings = await getSettings();
-    const check = BILI_SETTINGS.validateLarkWebhook(settings.larkWebhook);
-    if (!settings.larkWebhook.autoSync || !check.ok) return;
-    await postNoteToLark(check.larkWebhook, note);
-    chrome.runtime.sendMessage({ action: "larkAutoSyncResult", noteId: note.id, success: true }).catch(() => {});
-  } catch (error) {
-    console.warn("[Video Digest AI] 飞书自动同步失败：", error.message);
-    chrome.runtime
-      .sendMessage({ action: "larkAutoSyncResult", noteId: note?.id, success: false, message: error.message })
-      .catch(() => {});
-  }
-}
-
-async function handleSyncNotesToLark(noteIds) {
-  const settings = await getSettings();
-  const check = BILI_SETTINGS.validateLarkWebhook(settings.larkWebhook);
-  if (!check.ok) {
-    return { success: false, error: "LARK_WEBHOOK_NOT_CONFIGURED", message: check.error };
-  }
-  const notes = await readNotes();
-  const ids = Array.isArray(noteIds)
-    ? new Set(noteIds.filter((id) => typeof id === "string" && id))
-    : null;
-  const targets = ids ? notes.filter((note) => ids.has(note.id)) : notes;
-  if (!targets.length) return { success: false, error: "NO_NOTES", message: "没有可同步的笔记。" };
-
-  // 每个工作流请求都对应一条 record。带凭证时最大 4 次/秒；无凭证时保守为约 1 次/秒。
-  const intervalMs = check.larkWebhook.bearerToken ? 250 : 1_100;
-  let lastStartedAt = 0;
-  let synced = 0;
-  const failures = [];
-  for (let index = 0; index < targets.length; index += 1) {
-    const remaining = intervalMs - (Date.now() - lastStartedAt);
-    if (remaining > 0) await wait(remaining);
-    lastStartedAt = Date.now();
-    try {
-      await postNoteToLark(check.larkWebhook, targets[index]);
-      synced += 1;
-    } catch (error) {
-      failures.push({ id: targets[index].id, message: error.message });
-    }
-    notifyLarkSyncProgress({ done: index + 1, total: targets.length, synced, failed: failures.length });
-  }
-  return { success: failures.length === 0, total: targets.length, synced, failed: failures.length, failures };
-}
-
-async function handleTestLarkWebhook() {
-  const settings = await getSettings();
-  const check = BILI_SETTINGS.validateLarkWebhook(settings.larkWebhook);
-  if (!check.ok) {
-    return { success: false, error: "LARK_WEBHOOK_NOT_CONFIGURED", message: check.error };
-  }
-  await postNoteToLark(check.larkWebhook, BILI_LARK_WEBHOOK.testNote());
-  return { success: true };
-}
-
 // 请模型把口语字幕整理成通顺的笔记。失败返回 null，笔记保持原始字幕。
 async function polishNoteText(context, videoTitle) {
   try {
@@ -1593,7 +1496,7 @@ async function polishNoteText(context, videoTitle) {
 // 后台润色完成后把正文换掉。笔记可能已被删除，map 不命中就什么都不做。
 async function polishNoteWhenReady(noteId, context, videoTitle) {
   const polished = await polishNoteText(context, videoTitle);
-  const mutation = await mutateNotes(
+  await mutateNotes(
     (notes) =>
       notes.map((note) =>
         note.id === noteId && note.pending
@@ -1603,9 +1506,6 @@ async function polishNoteWhenReady(noteId, context, videoTitle) {
     { protectedNoteId: noteId },
   );
   chrome.runtime.sendMessage({ action: "noteUpdated", noteId }).catch(() => {});
-  const updatedNote = mutation.notes.find((note) => note.id === noteId);
-  // 润色中的视频笔记只在最终正文写回后同步一次。
-  if (updatedNote) syncNoteWhenAutoEnabled(updatedNote);
 }
 
 async function handleSaveNote({
@@ -1676,7 +1576,6 @@ async function handleSaveNote({
 
   // 故意不 await：让播放页的按钮立刻得到「已保存」。
   if (polishContext) polishNoteWhenReady(note.id, polishContext, videoTitle);
-  else syncNoteWhenAutoEnabled(note);
 
   return { success: true, note, removedCount: mutation.removed.length };
 }
@@ -1746,7 +1645,6 @@ async function handleSaveMemo({
     return notes;
   }, { protectedNoteId: memo.id });
   chrome.runtime.sendMessage({ action: "noteSaved", note: memo }).catch(() => {});
-  syncNoteWhenAutoEnabled(memo);
   return { success: true, memo, removedCount: mutation.removed.length };
 }
 

@@ -323,30 +323,6 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
-.notes-sync-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 6px 14px;
-  border-bottom: 1px solid var(--border);
-}
-
-.notes-sync-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 7px;
-  min-width: 0;
-}
-
-#larkSyncStatus {
-  overflow: hidden;
-  font-size: 11px;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 .notes-export-actions {
   display: flex;

@@ -167,10 +167,6 @@ function createContext({
             return { success: true, translated };
           }
           if (message.action === "checkVideoAvailable") return videoAvailable;
-          if (message.action === "syncNotesToLark") {
-            const total = Array.isArray(message.noteIds) ? message.noteIds.length : 2;
-            return { success: true, total, synced: total, failed: 0 };
-          }
           return { success: true };
         },
         onMessage: { addListener() {} },
@@ -207,7 +203,7 @@ function createContext({
   // 所以在末尾追加一行，从同一个词法作用域里把要测的绑定递出来。
   const source = fs.readFileSync(path.join(ROOT, "sidepanel.js"), "utf8");
   vm.runInContext(
-    `${source}\n;globalThis.__api = { state, uiText, parseVideoRef, activeTab, syncWithActiveTab, loadTranscript, analyze, renderSegments, renderAnalysis, segmentDisplayText, noteTextForSegment, saveTextAsVideoNote, paintSegmentText, setTranscriptMode, selectionContext, applySearchFilter, updateFollowPill, jumpToActive, closeSearch, renderNoteCard, renderMemoCard, playNote, saveMemo, currentMemoVideoContext, submitChatQuestion, saveChatAsNote, renderChat, renderChatPresetQuestions, openChatQuestionsModal, closeChatQuestionsModal, addChatQuestion, resetChatQuestions, saveChatQuestions, setupEventListeners, switchTab, renderOverviewPrompt, resetOverviewPrompt, chatContextSelection, syncNotesToLark, syncAllNotesToLark, larkSyncMessage };`,
+    `${source}\n;globalThis.__api = { state, uiText, parseVideoRef, activeTab, syncWithActiveTab, loadTranscript, analyze, renderSegments, renderAnalysis, segmentDisplayText, noteTextForSegment, saveTextAsVideoNote, paintSegmentText, setTranscriptMode, selectionContext, applySearchFilter, updateFollowPill, jumpToActive, closeSearch, renderNoteCard, renderMemoCard, playNote, saveMemo, currentMemoVideoContext, submitChatQuestion, saveChatAsNote, renderChat, renderChatPresetQuestions, openChatQuestionsModal, closeChatQuestionsModal, addChatQuestion, resetChatQuestions, saveChatQuestions, setupEventListeners, switchTab, renderOverviewPrompt, resetOverviewPrompt, chatContextSelection };`,
     context,
   );
 
@@ -287,17 +283,6 @@ test("英文界面会翻译侧边栏菜单和动态计数", () => {
   assert.equal(ctx.uiText("问 AI"), "Ask AI");
   assert.equal(ctx.uiText("7 章节"), "7 chapters");
   assert.equal(ctx.uiText("5 金句"), "5 key quotes");
-  assert.equal(ctx.uiText("同步飞书"), "sync2lark");
-});
-
-test("单条与全部笔记均使用同一个飞书同步消息", async () => {
-  const ctx = createContext({ transcript: transcriptResult() });
-  await ctx.syncNotesToLark(["note_1"]);
-  await ctx.syncAllNotesToLark();
-
-  const messages = ctx.sent.filter((message) => message.action === "syncNotesToLark");
-  assert.deepEqual(messages.map((message) => message.noteIds), [["note_1"], undefined]);
-  assert.equal(ctx.larkSyncMessage({ success: true, total: 2, synced: 2, failed: 0 }), "已同步 2 条笔记。");
 });
 
 test("概览提示词可在中文界面切换为英文默认版本", () => {

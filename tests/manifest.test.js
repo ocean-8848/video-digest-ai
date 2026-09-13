@@ -317,26 +317,6 @@ test("笔记页提供 JSON、Markdown 和 CSV 本地导出", () => {
   assert.match(sidepanel, /function notesAsCsv\(notes\)/);
 });
 
-test("飞书多维表格 Webhook 支持统一单条载荷、逐条与全量同步", () => {
-  const html = readText("options.html");
-  const options = readText("options.js");
-  const sidepanelHtml = readText("sidepanel.html");
-  const sidepanel = readText("sidepanel.js");
-  const background = readText("background.js");
-  const settings = readText("settings.js");
-  assert.match(html, /id="larkWebhookUrl"/);
-  assert.match(html, /id="larkWebhookAutoSync"/);
-  assert.match(html, /feishu\.cn\/hc\/zh-CN\/articles\/612376356355/);
-  assert.match(options, /saveLarkWebhook/);
-  assert.match(options, /testLarkWebhook/);
-  assert.match(sidepanelHtml, /id="syncAllNotesLarkBtn"[^>]*>[\s\S]*?同步飞书/);
-  assert.match(sidepanel, /label:\s*"同步飞书"/);
-  assert.match(sidepanel, /action:\s*"syncNotesToLark"/);
-  assert.match(background, /handleSyncNotesToLark/);
-  assert.match(background, /BILI_LARK_WEBHOOK\.notePayload/);
-  assert.match(settings, /validateLarkWebhook/);
-});
-
 test("笔记只使用 video_digest_notes 存储键", () => {
   const background = readText("background.js");
   assert.match(background, /const NOTES_STORAGE_KEY = "video_digest_notes"/);

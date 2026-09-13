@@ -491,55 +491,6 @@ select {
   margin: 0;
 }
 
-.lark-webhook-guide {
-  margin-top: 16px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--bg) 72%, var(--card));
-}
-
-.lark-webhook-guide strong {
-  font-size: 13px;
-}
-
-.lark-webhook-guide ol {
-  margin: 8px 0;
-  padding-left: 20px;
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.7;
-}
-
-.lark-webhook-guide code {
-  padding: 1px 4px;
-  color: var(--text);
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-}
-
-.lark-auto-sync {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 16px;
-  color: var(--text-muted);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.lark-auto-sync input {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--accent);
-}
-
-.lark-webhook-actions {
-  gap: 10px;
-  margin-top: 14px;
-}
-
 .guide-section {
   padding: 14px 15px;
   border: 1px solid var(--border);

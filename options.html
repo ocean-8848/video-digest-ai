@@ -129,46 +129,6 @@
         </p>
       </section>
 
-      <section class="card lark-webhook-card">
-        <div class="section-heading-row">
-          <div>
-            <h2>飞书多维表格同步</h2>
-            <p class="hint">
-              将笔记逐条发送到你配置的飞书多维表格 Webhook。视频笔记、手记和 AI 记使用完全一致的 JSON 字段，便于一个工作流统一新增或更新 record。
-            </p>
-          </div>
-        </div>
-        <section class="lark-webhook-guide">
-          <strong>配置方法</strong>
-          <ol>
-            <li>在目标多维表格创建自动化流程，触发条件选择“接收到 webhook 时”。</li>
-            <li>复制该流程的 Webhook 地址；在后续操作中添加“新增记录”，映射请求里的 <code>note</code> 字段。</li>
-            <li>把地址粘贴到下方并保存。需要凭证校验时，填写自动化流程生成的 Bearer Token。</li>
-          </ol>
-          <a class="guide-link" href="https://www.feishu.cn/hc/zh-CN/articles/612376356355-%E4%BD%BF%E7%94%A8%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%81%E7%A8%8B%E7%9A%84-webhook-%E8%A7%A6%E5%8F%91" target="_blank" rel="noreferrer">飞书官方 Webhook 使用说明 ↗</a>
-        </section>
-        <label class="field">
-          <span class="field-label">飞书 Webhook 地址</span>
-          <input id="larkWebhookUrl" type="url" autocomplete="off" spellcheck="false" placeholder="https://..." />
-        </label>
-        <label class="field">
-          <span class="field-label">Bearer Token（可选）</span>
-          <input id="larkWebhookBearerToken" type="text" autocomplete="off" spellcheck="false" placeholder="Bearer Token" />
-          <span class="field-hint">仅在飞书自动化开启“凭证校验”时填写；失焦后仅显示前 2 位与后 3 位。</span>
-        </label>
-        <label class="lark-auto-sync" for="larkWebhookAutoSync">
-          <input id="larkWebhookAutoSync" type="checkbox" />
-          <span>保存笔记后自动同步到飞书</span>
-        </label>
-        <div class="actions lark-webhook-actions">
-          <button id="saveLarkWebhookBtn" class="primary-btn" type="button">保存飞书 Webhook</button>
-          <button id="testLarkWebhookBtn" class="ghost-btn" type="button">测试连接</button>
-          <span id="larkWebhookStatus" class="status" role="status"></span>
-        </div>
-        <p class="field-hint">
-          测试连接会发送一条 <code>sync_test</code> 记录；批量同步按飞书 Webhook 限流逐条发送。地址、Token 仅保存在本机扩展存储。
-        </p>
-      </section>
     </main>
 
     <script src="settings.js"></script>

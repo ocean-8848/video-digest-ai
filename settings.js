@@ -214,11 +214,6 @@ var BILI_SETTINGS = (() => {
     bilibiliEnabled: true,
     noteLimit: LIMITS.noteLimit.default,
     uiLanguage: "zh-CN",
-    larkWebhook: Object.freeze({
-      url: "",
-      bearerToken: "",
-      autoSync: false,
-    }),
     chatDefaultQuestions: DEFAULT_CHAT_QUESTIONS,
   });
 
@@ -247,47 +242,6 @@ var BILI_SETTINGS = (() => {
       .slice(0, 20)
       .map((item) => item.slice(0, 300));
     return cleaned.length ? cleaned : [...DEFAULT_CHAT_QUESTIONS];
-  }
-
-  function normalizeLarkWebhook(input) {
-    const source = input && typeof input === "object" ? input : {};
-    const rawUrl = typeof source.url === "string" ? source.url.trim() : "";
-    const checked = rawUrl ? validateLarkWebhookUrl(rawUrl) : null;
-    return {
-      // 地址不合法时原样保存，让设置页能指出问题，而不是偷偷吞掉用户输入。
-      url: checked?.ok ? checked.url : rawUrl.slice(0, 4_000),
-      bearerToken:
-        typeof source.bearerToken === "string"
-          ? source.bearerToken.trim().slice(0, 2_000)
-          : "",
-      autoSync: source.autoSync === true,
-    };
-  }
-
-  // 飞书多维表格 Webhook 是外部写入入口，禁止明文地址，避免笔记与可选的
-  // Bearer token 被发送到不安全的连接。域名不硬编码，兼容飞书与 Lark 区域域名。
-  function validateLarkWebhookUrl(input) {
-    const text = String(input || "").trim();
-    if (!text) return { ok: false, error: "请填写飞书多维表格 Webhook 地址。" };
-    let parsed;
-    try {
-      parsed = new URL(text);
-    } catch (error) {
-      return { ok: false, error: "飞书 Webhook 地址不是合法的 URL。" };
-    }
-    if (parsed.protocol !== "https:") {
-      return { ok: false, error: "飞书 Webhook 地址必须以 https:// 开头。" };
-    }
-    if (!parsed.hostname) {
-      return { ok: false, error: "飞书 Webhook 地址不是合法的 URL。" };
-    }
-    return { ok: true, url: parsed.href, origin: `${parsed.origin}/` };
-  }
-
-  function validateLarkWebhook(input) {
-    const larkWebhook = normalizeLarkWebhook(input);
-    const check = validateLarkWebhookUrl(larkWebhook.url);
-    return { ...check, larkWebhook };
   }
 
   const captionProviderById = (id) =>
@@ -548,7 +502,6 @@ var BILI_SETTINGS = (() => {
       noteLimit: clampNumber(source.noteLimit, LIMITS.noteLimit),
       uiLanguage: source.uiLanguage === "en" ? "en" : "zh-CN",
       overviewPrompts: normalizeOverviewPrompts(source.overviewPrompts),
-      larkWebhook: normalizeLarkWebhook(source.larkWebhook),
       chatDefaultQuestions: normalizeChatDefaultQuestions(source.chatDefaultQuestions),
     };
   }
@@ -622,9 +575,6 @@ var BILI_SETTINGS = (() => {
     normalizeLangPreference,
     normalizeOverviewPrompts,
     normalizeChatDefaultQuestions,
-    normalizeLarkWebhook,
-    validateLarkWebhookUrl,
-    validateLarkWebhook,
     validate,
     validateAppSettings,
     providerFingerprint,
