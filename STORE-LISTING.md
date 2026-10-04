@@ -11,7 +11,7 @@ Video Digest AI 在 YouTube 与 Bilibili 播放页旁打开侧边栏，把平台
 - 可配置多个 AI 服务并拖动排序；当前服务网络错误、超时、限流或服务端故障时，自动按顺序尝试下一项。
 - 设置、密钥、字幕缓存和笔记仅保存在本机，没有开发者服务器、分析、广告或遥测。
 
-YouTube 字幕可使用用户配置的 Supadata、Captapi、TranscriptFetch 或 TranscriptAPI，并按用户保存的顺序自动回退；Bilibili 字幕来自平台接口。扩展不在本机下载或转写音频。AI 功能需要用户自备 Provider API Key。
+YouTube 字幕可使用用户配置的 Supadata、Captapi、TranscriptFetch、TranscriptAPI 或 GetYouTubeTranscript，并按用户保存的顺序自动回退；Bilibili 字幕来自平台接口。扩展不在本机下载或转写音频。AI 功能需要用户自备 Provider API Key。
 
 ## 权限说明
 

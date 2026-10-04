@@ -6,7 +6,7 @@ Video Digest AI 没有开发者运营的服务器、账户系统、分析、广�
 
 以下内容保存在 `chrome.storage.local`，不会通过 `storage.sync` 同步：
 
-- YouTube 字幕服务商（Supadata、Captapi、TranscriptFetch、TranscriptAPI）的 API Key 与排序
+- YouTube 字幕服务商（Supadata、Captapi、TranscriptFetch、TranscriptAPI、GetYouTubeTranscript）的 API Key 与排序
 - 有序 AI Provider 列表的服务商、Base URL、模型、API Key、并发和超时
 - 飞书多维表格 Webhook 地址、可选 Bearer Token 与自动同步开关
 - 字幕、翻译与概览缓存：30天过期，最多20条，按站点、视频和分P隔离
@@ -17,7 +17,7 @@ Video Digest AI 没有开发者运营的服务器、账户系统、分析、广�
 
 ## 网络请求
 
-- YouTube：标准播放页的规范 URL 会按用户设置的顺序发送给已配置的字幕服务商，并仅携带该服务商对应的 API Key。前一项失败时才请求下一项。Supadata 固定使用 `mode=native`，TranscriptFetch 固定使用 `captions` 模式；四个服务商都只请求已发布字幕。扩展不会在本机下载音频或进行语音转写。
+- YouTube：标准播放页的规范 URL 会按用户设置的顺序发送给已配置的字幕服务商，并仅携带该服务商对应的 API Key。前一项失败时才请求下一项。Supadata 固定使用 `mode=native`，TranscriptFetch 固定使用 `captions` 模式；五个服务商都只请求已发布字幕。扩展不会在本机下载音频或进行语音转写。
 - Bilibili：向 `api.bilibili.com` 获取视频和字幕轨信息，并从 Bilibili CDN 下载字幕。接口请求可携带浏览器现有的 Bilibili 登录会话；扩展没有 `cookies` 权限，也不读取或保存 Cookie 内容。
 - AI Provider：使用翻译、顺句、概览、视频问答、解释或笔记润色时，所需字幕文本、视频元数据、用户问题、必要的多轮对话和 API Key 会发送给当前使用的 Provider。当前一项发生可恢复故障时，相同请求才会依次发送给用户配置的后续 Provider。
 - 飞书多维表格 Webhook：仅在用户保存该 Webhook 后，且用户手动同步或显式开启“保存笔记后自动同步”时，将单条笔记的统一 JSON 载荷发送到该地址。载荷可含笔记正文、类型、创建时间及已存在的视频标题、平台、时间锚点和来源链接；不含 AI Provider 或字幕服务商的密钥。批量同步会按飞书限流逐条发送。

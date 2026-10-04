@@ -17,9 +17,9 @@
 4. 快速灵活做笔记：在播放位置、字幕、概览、手记或 AI 回答处保存笔记，并可再次编辑、复制或导出。
 5. 侧边栏快捷 AI 咨询问答：按需关联字幕、概述和当前视频笔记；全部关闭时就是纯问答。
 
-- YouTube：标准 `youtube.com/watch` 页面；支持 Supadata、Captapi、TranscriptFetch 和 TranscriptAPI。可配置多个服务商，按设置页从上到下的顺序回退。
+- YouTube：标准 `youtube.com/watch` 页面；支持 Supadata、Captapi、TranscriptFetch、TranscriptAPI 和 GetYouTubeTranscript。可配置多个服务商，按设置页从上到下的顺序回退。
 - Bilibili：普通视频、合集和分P；通过 Bilibili 官方接口与 WBI 签名读取当前登录会话可见的字幕。
-- 不支持 Shorts、直播、番剧影视页和受限视频。四个 YouTube 字幕服务都只读取已发布字幕；没有可用字幕时会按顺序继续尝试下一项。
+- 不支持 Shorts、直播、番剧影视页和受限视频。五个 YouTube 字幕服务都只读取已发布字幕；没有可用字幕时会按顺序继续尝试下一项。
 
 ## 功能
 
@@ -57,12 +57,13 @@
 
 ## YouTube 字幕服务商
 
-设置页默认提供一个 Supadata 项，可通过“添加字幕服务商”继续添加 Captapi、TranscriptFetch 或 TranscriptAPI。填写各自的 API Key 后，可直接拖动卡片或使用“上移 / 下移”调整顺序；请求按从上到下的顺序执行，只有前一项失败才尝试后一项。密钥仅保存在 `chrome.storage.local`，并且仅发送至所属服务商域名。
+设置页默认提供一个 Supadata 项，可通过“添加字幕服务商”继续添加 Captapi、TranscriptFetch、TranscriptAPI 或 GetYouTubeTranscript。填写各自的 API Key 后，可直接拖动卡片或使用“上移 / 下移”调整顺序；请求按从上到下的顺序执行，只有前一项失败才尝试后一项。密钥仅保存在 `chrome.storage.local`，并且仅发送至所属服务商域名。
 
 - [Supadata](https://docs.supadata.ai/get-transcript)：扩展固定使用 `mode=native`，只取已有字幕。
 - [Captapi](https://captapi.com/how-to/youtube-transcript)：返回 YouTube 已发布的带时间戳字幕。
 - [TranscriptFetch](https://transcriptfetch.com/docs/endpoints)：扩展固定使用 `captions` 模式，只取已有字幕。
 - [TranscriptAPI](https://transcriptapi.com/docs/api/)：返回带时间戳的 YouTube 字幕，并支持服务端语言优先级。
+- [GetYouTubeTranscript](https://getyoutubetranscript.com/docs)：单次 GET 请求直接返回带时间戳的 YouTube 字幕，无需轮询任务。
 
 扩展会缓存已获取的字幕；缓存命中不会重新请求，手动“重新获取字幕”可能再次消耗服务商额度。套餐、额度和计费规则会变化，请以设置页每个服务商提供的官方文档和控制台说明为准。
 

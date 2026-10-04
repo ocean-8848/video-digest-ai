@@ -162,6 +162,17 @@ var BILI_SETTINGS = (() => {
       detailEn:
         "Returns YouTube captions with timestamps and supports language-priority selection.",
     },
+    {
+      id: "getyoutubetranscript",
+      label: "GetYouTubeTranscript",
+      origin: "https://getyoutubetranscript.com/",
+      docsUrl: "https://getyoutubetranscript.com/docs",
+      dashboardUrl: "https://getyoutubetranscript.com/dashboard",
+      detail:
+        "单次请求直接返回带时间戳的 YouTube 字幕，无需轮询；没有字幕时会自动尝试列表中的下一项。",
+      detailEn:
+        "Returns timestamped YouTube captions in a single request with no polling; if unavailable, the next provider is tried.",
+    },
   ]);
   const MAX_YOUTUBE_CAPTION_PROVIDERS = 8;
 

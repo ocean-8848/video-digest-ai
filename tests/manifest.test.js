@@ -133,6 +133,7 @@ test("字幕服务商支持多项配置、排序回退与独立保存", () => {
   assert.match(settings, /captapi/);
   assert.match(settings, /transcriptfetch/);
   assert.match(settings, /transcriptapi/);
+  assert.match(settings, /getyoutubetranscript/);
   assert.match(background, /fetchTranscriptWithFallback/);
 });
 

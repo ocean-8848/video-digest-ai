@@ -134,6 +134,53 @@ test("TranscriptAPI 使用文档规定的 GET 端点与 Bearer 鉴权", async ()
   assert.equal(result.transcript[0].start, 3);
 });
 
+test("GetYouTubeTranscript 使用 GET 端点、Bearer 鉴权并返回秒级时间戳", async () => {
+  let requested;
+  const result = await youtube.fetchGetYouTubeTranscriptTranscript("dQw4w9WgXcQ", "gyt-key", {
+    fetchImpl: async (url, options) => {
+      requested = { url: new URL(url), options };
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            success: true,
+            data: {
+              video_id: "dQw4w9WgXcQ",
+              language_code: "en",
+              transcript: "Hello world",
+              segments: [{ start: 1.2, duration: 2.16, text: "Hello world" }],
+            },
+          };
+        },
+      };
+    },
+  });
+  assert.equal(requested.url.origin + requested.url.pathname, youtube.GETYOUTUBETRANSCRIPT_TRANSCRIPT_URL);
+  assert.equal(requested.url.searchParams.get("v"), "dQw4w9WgXcQ");
+  assert.equal(requested.url.searchParams.get("timestamps"), "true");
+  assert.equal(requested.options.headers.Authorization, "Bearer gyt-key");
+  assert.deepEqual(result.transcript, [
+    { text: "Hello world", start: 1.2, duration: 2.16, language: "en" },
+  ]);
+  assert.equal(result.language, "en");
+});
+
+test("GetYouTubeTranscript 无字幕时返回 NO_SUBTITLE，以便回退到下一项", async () => {
+  await assert.rejects(
+    youtube.fetchGetYouTubeTranscriptTranscript("dQw4w9WgXcQ", "gyt-key", {
+      fetchImpl: async () => ({
+        ok: false,
+        status: 404,
+        async json() {
+          return { success: false, code: "TRANSCRIPT_NOT_FOUND", message: "No transcript" };
+        },
+      }),
+    }),
+    (error) => error.code === "NO_SUBTITLE",
+  );
+});
+
 test("字幕服务商按保存顺序回退，成功后不会继续请求后续项", async () => {
   const calls = [];
   const result = await youtube.fetchTranscriptWithFallback(
